@@ -8,7 +8,8 @@
         {
             string msg = "INIT";
             msg = addParam(msg, "ClassName", "USARBot.P3AT");
-            msg = addParam(msg, "Start", "AutoPlayerStart_0");
+            msg = addParam(msg, "Start", "RobotStart2");
+            //msg = addParam(msg, "Start", "AutoPlayerStart_0");
             //msg = addParam(msg, "Location", "4.5,1.9,1.8");
             msg += "\r\n";
 

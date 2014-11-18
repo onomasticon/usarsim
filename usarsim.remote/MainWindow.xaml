@@ -17,6 +17,7 @@
     		</ScrollViewer>
     	</Grid>
     	<Button x:Name="button_spawn" Content="Spawn" Margin="0,10,10,0" HorizontalAlignment="Right" VerticalAlignment="Top" Width="80" Height="20"/>
+    	<Button x:Name="button_process" Content="Process" Margin="271,40,183,0" Height="20" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top"/>
         
     </Grid>
 </Window>

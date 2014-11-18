@@ -1,24 +1,29 @@
 ﻿namespace usarsim
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
 
     public class uClient
     {
-        public int SendTimeout = 5000;
+        public int SendTimeout = 1;
 
-        public string HostName { get; private set; }
-        public int HostPort { get; private set; }
+        public string HostName { get; set; }
+        public int HostPort { get; set; }
 
         public bool IsConnected { get { return _tcpClient != null && _tcpClient.Connected; } }
-        public bool IsConnecting { get; private set; }
+        public bool IsConnecting { get; protected set; }
 
         public event Action<string> ErrorOccurred;
         public event Action<string> LogMessage;
 
-        private TcpClient _tcpClient;
+        protected TcpClient _tcpClient;
+        protected NetworkStream _stream;
+
+        protected Queue<byte[]> _sendQueue = new Queue<byte[]>();
+        protected Queue<byte[]> _receiveQueue = new Queue<byte[]>();
 
         public uClient() : this("localhost", 3000)
         {
@@ -40,10 +45,14 @@
             IsConnecting = true;
 
             _tcpClient = new TcpClient();
-            _tcpClient.SendTimeout = SendTimeout;
             _tcpClient.Connect(HostName, HostPort);
 
+            _tcpClient.SendTimeout = SendTimeout;
+            _tcpClient.Client.SendTimeout = SendTimeout;
+            _stream = _tcpClient.GetStream();
+
             IsConnecting = false;
+            LogMessage.Raise("connected to " + HostName + " : " + HostPort);
 
             // TODO: this is currently blocking. do we need to make it async?
         }
@@ -60,23 +69,17 @@
             _tcpClient = null;
         }
 
-        public void SpawnRobot()
+        public void Receive()
         {
-            string command = uCommsProtocol.INIT();
-            Send(command);
-        }
-
-        public void Drive(float left, float right)
-        {
-            string command = uCommsProtocol.DRIVE(left, right);
-            Send(command);
+            var readBuffer = readStreamContents();
+            _receiveQueue.Enqueue(readBuffer);
         }
 
         public void Send(string message)
         {
             if (!IsConnected)
             {
-                ErrorOccurred.Raise("not connected, so cannot send message");
+                ErrorOccurred.Raise("error: not connected, so cannot send message");
                 return;
             }
 
@@ -84,6 +87,23 @@
             _tcpClient.Client.Send(buffer);
 
             LogMessage.Raise("sent message: " + message);
+        }
+
+        protected byte[] readStreamContents()
+        {
+            List<byte> buffer = new List<byte>();
+            int readBuffer = 0;
+
+            while (_stream.DataAvailable)
+            {
+                readBuffer = _stream.ReadByte();
+
+                if (readBuffer != -1)
+                {
+                    buffer.Add((byte)readBuffer);
+                }
+            }
+            return buffer.ToArray();
         }
     }
 }
